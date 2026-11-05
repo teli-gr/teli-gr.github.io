@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Τέλη 2027 — light theme only (by request).
+   Green comes from the Salary World Map accent; EU blue + plate white come from the Greek number plate. */
+@layer base {
+  :root {
+    --background: 216 33% 97%;      /* #f5f7fa */
+    --foreground: 222 47% 8%;       /* #0b1220 */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 8%;
+    --muted: 214 32% 94%;
+    --muted-foreground: 217 14% 30%; /* ~8:1 on white */
+    --secondary: 214 32% 95%;
+    --secondary-foreground: 222 47% 11%;
+    --accent: 146 60% 94%;
+    --accent-foreground: 146 76% 20%;
+    --border: 214 24% 86%;
+    --input: 214 18% 72%;
+    --ring: 146 76% 26%;
+    --primary: 147 75% 56%;          /* #3ee38a */
+    --primary-foreground: 146 67% 5%;/* #04140b */
+    --brand: 146 76% 24%;            /* text-safe green, 6.9:1 */
+    --brand-soft: 146 62% 94%;
+    --warn: 30 92% 30%;
+    --warn-soft: 40 92% 94%;
+    --danger: 4 72% 38%;
+    --danger-soft: 4 86% 96%;
+    --eu: 225 100% 30%;              /* #003399 */
+    --paper: 150 30% 98%;
+    --radius: 0.875rem;
+    color-scheme: light;
+  }
+  html { font-size: 100%; -webkit-text-size-adjust: 100%; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  /* Text size buttons are for tablets and computers; on phones people pinch-zoom or use the browser's own text size. */
+  @media (min-width: 640px) {
+    html[data-text="lg"] { font-size: 112.5%; }
+    html[data-text="xl"] { font-size: 125%; }
+  }
+  body { @apply bg-background text-foreground font-sans antialiased; margin: 0; line-height: 1.5; }
+  * { @apply border-border; }
+  :focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+}
+
+@layer components {
+  .num { font-variant-numeric: tabular-nums; }
+  .doc-paper {
+    background-color: hsl(var(--paper));
+    background-image:
+      repeating-linear-gradient(135deg, hsl(146 40% 50% / 0.045) 0 2px, transparent 2px 9px),
+      radial-gradient(120% 80% at 100% 0%, hsl(146 60% 85% / 0.35), transparent 60%);
+  }
+}
+
+/* answered-question check: a small, friendly pop (off for people who prefer less motion, see base layer) */
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+.animate-pop { animation: pop 0.34s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Chinese text: fall back to good system CJK fonts (Inter has no CJK glyphs) */
+:lang(zh) body { font-family: "Inter Variable", Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", system-ui, sans-serif; }
