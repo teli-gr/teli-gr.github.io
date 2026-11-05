@@ -1,0 +1,87 @@
+# Publishes the site on GitHub Pages and checks AADE for road-tax news.
+# It runs when you upload changes, every Monday and Thursday morning, and when you press "Run workflow" (Actions tab).
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 6 * * 1,4"   # Monday and Thursday, 08:23 Athens time in winter (06:23 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write   # save the AADE check (news + date of the check)
+  issues: write     # tell you about news: GitHub emails you new issues
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Check the site address
+        id: address
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          DOMAIN=$(node -p "require('./deploy/settings.json').domain || ''")
+          if [ -z "$DOMAIN" ] && [ "${REPO,,}" != "$OWNER.github.io" ]; then
+            echo "::error::Rename this repository to $OWNER.github.io (Settings > General), or put your domain in deploy/settings.json. Otherwise the site's links break."
+            exit 1
+          fi
+          echo "url=https://$OWNER.github.io" >> "$GITHUB_OUTPUT"
+
+      - name: Check AADE for news
+        if: github.event_name != 'push'
+        run: node app/scripts/check-aade.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Save the check
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/content/aade-data.ts app/scripts/aade-state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "AADE check $(date -u +%F)"
+            git push
+          fi
+
+      - name: Build the site
+        working-directory: app
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:site
+
+      - name: Fill in the address
+        run: node deploy/fill.mjs
+        env:
+          SITE_ADDRESS: ${{ steps.address.outputs.url }}
+          META_CSP: "1"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: deploy/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
