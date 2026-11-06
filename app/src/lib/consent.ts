@@ -21,9 +21,16 @@ export function browserSaysNo(): boolean {
   const n = navigator as Navigator & { globalPrivacyControl?: boolean; msDoNotTrack?: string };
   return n.globalPrivacyControl === true || n.doNotTrack === "1" || n.msDoNotTrack === "1" || (window as unknown as { doNotTrack?: string }).doNotTrack === "1";
 }
+const AT = "teli.consent.at", YEAR = 365 * 24 * 3600 * 1000;
+/* The choice is kept for 12 months, then we ask again. */
 export function getConsent(): Consent | null {
   if (browserSaysNo()) return "denied";
-  try { const v = localStorage.getItem(KEY); return v === "granted" || v === "denied" ? v : null; } catch { return null; }
+  try {
+    const v = localStorage.getItem(KEY), at = Number(localStorage.getItem(AT) || 0);
+    if (v !== "granted" && v !== "denied") return null;
+    if (!at || Date.now() - at > YEAR) { localStorage.removeItem(KEY); localStorage.removeItem(AT); return null; }
+    return v;
+  } catch { return null; }
 }
 export const counting = () => getConsent() === "granted";
 
@@ -70,7 +77,7 @@ function start() {
 const listeners = new Set<() => void>();
 export function onConsentChange(fn: () => void) { listeners.add(fn); return () => { listeners.delete(fn); }; }
 export function setConsent(v: Consent) {
-  try { localStorage.setItem(KEY, v); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY, v); localStorage.setItem(AT, String(Date.now())); } catch { /* ignore */ }
   if (v === "granted") start(); else { queue.length = 0; clearGA(); }
   listeners.forEach((fn) => fn());
 }

@@ -1,8 +1,9 @@
 import * as React from "react";
-import { BarChart3, Cookie, Trash2 } from "lucide-react";
+import { BarChart3, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useT } from "@/i18n";
+import { cn } from "@/lib/utils";
 import { CREDIT } from "@/content/credit";
 import { browserSaysNo, contactEmail, eraseLocal, gaId, getConsent, goatCode, hasStats, onConsentChange, setConsent, type Consent } from "@/lib/consent";
 
@@ -17,24 +18,49 @@ function useConsent() {
   return c;
 }
 
-/* Small, non-blocking card, shown only when a visitor counter is set up and the visitor hasn't chosen yet.
-   «Αποδοχή» and «Απόρριψη» look the same, so saying no is as easy as saying yes. Nothing is counted before «Αποδοχή». */
+/* Dark floating card, centred at the bottom; shown only when a visitor counter is set up and the visitor hasn't chosen yet.
+   Built for older visitors on phones: big text, 56 px buttons, a 48 px ✕.
+   «Ναι» and «Όχι» look exactly the same (Greek DPA: saying no as easy as saying yes). Nothing is counted before «Ναι».
+   ✕ means "not now": the card closes, nothing is counted, and it asks again on the next visit. */
+const LATER = "teli.consent.later";
+const askedLater = () => { try { return sessionStorage.getItem(LATER) === "1"; } catch { return false; } };
+
 export function CookieBanner({ onMore }: { onMore: () => void }) {
-  const t = useT();
+  const t = useT(); const p = t.privacy;
   const consent = useConsent();
-  if (!hasStats() || consent) return null;
-  const ga = !!gaId();
-  const Icon = ga ? Cookie : BarChart3;
+  const [later, setLater] = React.useState(askedLater);
+  const ref = React.useRef<HTMLElement>(null);
+  const show = hasStats() && !consent && !later;
+  // Keep the end of the page (footer, links) reachable above the card.
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!show || !el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => { document.body.style.paddingBottom = `${el.offsetHeight + 24}px`; });
+    ro.observe(el);
+    return () => { ro.disconnect(); document.body.style.paddingBottom = ""; };
+  }, [show]);
+  if (!show) return null;
+  const notNow = () => { try { sessionStorage.setItem(LATER, "1"); } catch { /* ignore */ } setLater(true); };
+  const ring = "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-white";
+  const choice = cn("h-14 min-w-28 flex-1 rounded-full bg-white px-6 text-lg font-bold text-foreground shadow-sm transition-colors hover:bg-white/90 sm:h-12 sm:flex-none sm:text-base", ring);
   return (
-    <section aria-label={t.privacy.title} className="fixed inset-x-3 bottom-[6.75rem] z-40 rounded-2xl border bg-card p-4 shadow-lg sm:inset-x-auto sm:left-4 sm:max-w-sm lg:bottom-4">
-      <p className="m-0 flex gap-2 text-sm">
-        <Icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
-        <span>{ga ? t.privacy.cookies : t.privacy.ask}</span>
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" variant="outline" className="min-w-24" onClick={() => setConsent("granted")}>{t.privacy.accept}</Button>
-        <Button type="button" size="sm" variant="outline" className="min-w-24" onClick={() => setConsent("denied")}>{t.privacy.reject}</Button>
-        <button type="button" onClick={onMore} className="ml-auto min-h-10 px-1 text-sm font-semibold text-brand underline underline-offset-2">{t.privacy.more}</button>
+    <section ref={ref} aria-labelledby="consent-title"
+      className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-[38rem] rounded-[22px] bg-foreground p-4 text-white shadow-[0_18px_50px_rgba(11,18,32,0.35)] sm:bottom-6 sm:p-5"
+      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <button type="button" onClick={notNow} aria-label={p.later} title={p.later} className={cn("absolute right-3 top-3 grid size-12 place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/20", ring)}>
+        <X className="size-6" aria-hidden="true" />
+      </button>
+      <div className="flex items-start gap-3.5 pr-14">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary" aria-hidden="true"><BarChart3 className="size-6 text-primary-foreground" /></span>
+        <div className="grid gap-1">
+          <p id="consent-title" className="m-0 text-lg font-bold leading-snug">{p.askTitle}</p>
+          <p className="m-0 text-base leading-relaxed text-white/75">{gaId() ? p.cookies : p.ask}</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3 sm:pl-[3.875rem]">
+        <button type="button" className={choice} onClick={() => setConsent("granted")}>{p.accept}</button>
+        <button type="button" className={choice} onClick={() => setConsent("denied")}>{p.reject}</button>
+        <button type="button" onClick={onMore} className={cn("inline-flex min-h-11 w-full items-center justify-center rounded px-2 text-base font-bold text-primary underline underline-offset-2 sm:ml-auto sm:w-auto", ring)}>{p.more}</button>
       </div>
     </section>
   );
