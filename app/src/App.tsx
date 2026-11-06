@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AADE, EV, FAQ_URLS } from "@/content/faq";
 import { GUIDE_LINKS } from "@/content/guideLinks";
+import { CREDIT } from "@/content/credit";
 import { contactEmail } from "@/lib/consent";
 import { HINTS, LANGS, suggestedLang, useI18n, useT, type Lang } from "@/i18n";
 import type { Dict } from "@/i18n/el";
@@ -79,11 +80,18 @@ const inClaude = () => typeof (window as unknown as { claude?: unknown }).claude
 export default function App() {
   const { t, lang } = useI18n();
   const [privacyOpen, setPrivacyOpen] = React.useState(false);
+  const [knowOpen, setKnowOpen] = React.useState(() => (typeof location !== "undefined" && location.hash === "#updates" ? "updates" : ""));
+  /* «Απόρρητο» links from the guide pages land on /#privacy and open the notice. */
+  React.useEffect(() => {
+    const f = () => { if (location.hash === "#privacy") setPrivacyOpen(true); };
+    f(); window.addEventListener("hashchange", f); return () => window.removeEventListener("hashchange", f);
+  }, []);
+  const togglePrivacy = (o: boolean) => { setPrivacyOpen(o); if (!o && location.hash === "#privacy") history.replaceState(null, "", location.pathname + location.search); };
   const { gov, source } = useGov();
   const [s, setS] = React.useState<State>(load);
   const update = (patch: Partial<State>) => setS((p) => ({ ...p, touched: true, ...patch }));
   const patchV = (patch: Partial<Vehicle>) => setS((p) => ({ ...p, touched: true, vehicles: p.vehicles.map((v) => (v.id === p.active ? { ...v, ...patch } : v)) }));
-  React.useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } }, [s]);
+  React.useEffect(() => { if (!s.touched) return; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* ignore */ } }, [s]); // nothing is saved until the visitor types something
   React.useEffect(() => { document.documentElement.dataset.text = s.text; }, [s.text]);
   React.useEffect(() => { document.querySelectorAll(".plate-year").forEach((n) => (n.textContent = String(gov.taxYear))); document.title = t.meta.docTitle(gov.taxYear); }, [gov.taxYear, t]);
 
@@ -153,6 +161,7 @@ export default function App() {
     setRemoved(null);
   };
 
+  const chip = "inline-flex min-h-8 items-center rounded-full border bg-card px-3 text-xs font-medium text-muted-foreground shadow-[0_1px_0_rgba(16,24,40,0.04)] transition-colors hover:border-brand hover:text-brand";
   const pad = { paddingLeft: "max(1rem, env(safe-area-inset-left, 0px))", paddingRight: "max(1rem, env(safe-area-inset-right, 0px))" };
   const latest = [...gov.notices].sort((a, b) => b.date.localeCompare(a.date))[0];
   const latestText = latest ? govText(t, lang, latest.title) : null;
@@ -181,6 +190,11 @@ export default function App() {
         {/* intro */}
         <section className="grid gap-4">
           <h1 className="max-w-[22ch] text-[1.75rem] font-extrabold leading-[1.1] tracking-tight text-balance sm:text-4xl">{t.intro.h1(gov.taxYear)}</h1>
+          {/* freshness stamp under the title: when the data was last checked against AADE, and that we are not AADE */}
+          <p className="-mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+            <span>{t.intro.trust(fmtDate(gov.checkedAt, { day: "numeric", month: "short", year: "numeric" }))}</span>
+          </p>
           <p className="max-w-[62ch] text-base text-muted-foreground sm:text-lg">{t.intro.lead(e.needsValue ? 4 : 3)}</p>
           <div className={cn("grid gap-2 rounded-2xl border-2 px-4 py-3", stage === 0 ? "border-[hsl(146_45%_80%)] bg-brand-soft" : "border-[hsl(4_70%_85%)] bg-danger-soft")}>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -195,7 +209,7 @@ export default function App() {
               )}
             </div>
             {latest && latestText && (
-              <a href="#updates" className="flex flex-wrap items-baseline gap-x-2 text-sm text-foreground/85 underline-offset-4 hover:underline">
+              <a href="#updates" onClick={() => setKnowOpen("updates")} className="flex flex-wrap items-baseline gap-x-2 text-sm text-foreground/85 underline-offset-4 hover:underline">
                 <span className="inline-flex items-center gap-1.5 font-semibold"><span className={cn("size-2 rounded-full", source === "live" ? "bg-brand" : "bg-muted-foreground")} aria-hidden="true" />{t.intro.latest(fmtDate(latest.date, { day: "numeric", month: "short" }))}</span>
                 <span lang={latestText.greek ? "el" : undefined}>{latestText.text}{latestText.greek && <span className="ml-1 text-muted-foreground">({t.inGreekTag})</span>}</span>
               </a>
@@ -220,7 +234,7 @@ export default function App() {
           <div className="order-1 grid min-w-0 gap-4 lg:order-none lg:col-start-1 lg:row-start-1">
 
             {/* household: one chip per vehicle, each with its own remove button; quick add for car or motorbike */}
-            <div className="grid gap-2" role="group" aria-labelledby="vehicles-label">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2" role="group" aria-labelledby="vehicles-label">
               <span id="vehicles-label" className="text-sm font-semibold text-muted-foreground">{t.vehicles.label}</span>
               <div className="flex flex-wrap items-center gap-2">
                 {all.map(({ v: x, e: xe }, i) => (
@@ -303,7 +317,7 @@ export default function App() {
                     <AccordionItem key={i} value={`faq-${i}`}>
                       <AccordionTrigger>{f.q}</AccordionTrigger>
                       <AccordionContent className="grid gap-2">
-                        <p>{f.a}</p>
+                        {f.a.split("\n").map((line, j) => <p key={j} className="m-0">{line}</p>)}
                         <a className="text-sm font-semibold text-brand underline underline-offset-4" href={FAQ_URLS[f.src]} target="_blank" rel="noopener">{t.help.source(t.faqSources[f.src])}</a>
                       </AccordionContent>
                     </AccordionItem>
@@ -315,7 +329,7 @@ export default function App() {
             <Card>
               <CardContent className="grid gap-1 pb-2 sm:pb-3">
                 <h2 className="text-xl font-bold tracking-tight">{t.know.title}</h2>
-                <Accordion type="single" collapsible>
+                <Accordion type="single" collapsible value={knowOpen} onValueChange={setKnowOpen}>
                   <AccordionItem value="scam">
                     <AccordionTrigger><span className="flex items-center gap-2"><ShieldAlert className="size-5 shrink-0 text-danger" aria-hidden="true" />{t.know.scamTitle}</span></AccordionTrigger>
                     <AccordionContent className="grid gap-3">
@@ -369,17 +383,34 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="mx-auto max-w-6xl pb-10 text-sm text-muted-foreground" style={pad}>
-        {!inClaude() && <nav aria-label={t.footer.guides} className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-semibold text-foreground">{t.footer.guides}:</span>
-          {GUIDE_LINKS.map((g) => <a key={g.slug} href={`/odigos/${g.slug}/`} lang="el" className="min-h-10 content-center font-semibold text-brand underline underline-offset-2">{g.label}</a>)}
-        </nav>}
-        <p className="m-0">{t.footer.notAade}</p>
-        <p className="m-0 mt-1 flex flex-wrap items-center gap-x-3">{t.footer.local} <button type="button" onClick={() => setPrivacyOpen(true)} className="min-h-10 font-semibold text-brand underline underline-offset-2">{t.footer.privacy}</button>
-          {contactEmail() && <a href={`mailto:${contactEmail()}?subject=${encodeURIComponent(t.meta.appName(gov.taxYear))}`} onClick={() => track("feedback_click")} className="min-h-10 content-center font-semibold text-brand underline underline-offset-2">{t.footer.feedback}</a>}
-        </p>
+      <footer className="mx-auto mt-10 grid max-w-3xl justify-items-center gap-5 pb-10 text-center" style={pad}>
+        <nav aria-label={t.footer.guides} className="flex flex-wrap items-center justify-center gap-2">
+          {!inClaude() && lang !== "el" && <span className="text-xs text-muted-foreground">{t.footer.guides}:</span>}
+          {!inClaude() && GUIDE_LINKS.map((g) => <a key={g.slug} href={`/odigos/${g.slug}/`} lang="el" className={chip}>{g.label}</a>)}
+          <button type="button" onClick={() => setPrivacyOpen(true)} className={chip}>{t.footer.privacy}</button>
+          {contactEmail() && <a href={`mailto:${contactEmail()}?subject=${encodeURIComponent(t.meta.appName(gov.taxYear))}`} onClick={() => track("feedback_click")} className={chip}>{t.footer.feedback}</a>}
+        </nav>
+        {/* Signature: "made with love by" + the credit as a mini Greek number plate, like the logo */}
+        <a href={CREDIT.url} target="_blank" rel="noopener" onClick={() => track("credit_click")} className="group inline-flex min-h-10 items-center gap-1 rounded-md text-sm text-muted-foreground">
+          {t.footer.madeBy.split(/(\{heart\}|\{site\})/).map((part, i) =>
+            part === "{heart}" ? (
+              <span key={i} className="inline-flex">
+                <svg viewBox="0 0 24 24" className="size-4 fill-[#e5484d] transition-transform duration-300 group-hover:scale-125 motion-reduce:transition-none motion-reduce:group-hover:scale-100" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2-.2 3.9.8 5.4 2.6 1.5-1.8 3.4-2.8 5.4-2.6 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z" /></svg>
+                <span className="sr-only">{t.footer.heart}</span>
+              </span>
+            ) : part === "{site}" ? (
+              <span key={i} className="ml-1 inline-flex h-7 items-stretch overflow-hidden rounded-[5px] border-2 border-foreground bg-white shadow-sm transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+                <span className="flex w-4 flex-col items-center justify-center gap-px bg-eu" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" className="size-2.5">{Array.from({ length: 12 }).map((_, k) => { const r = (k / 12) * Math.PI * 2; return <circle key={k} cx={10 + 7 * Math.cos(r)} cy={10 + 7 * Math.sin(r)} r="1.6" fill="#ffcc00" />; })}</svg>
+                  <span className="font-plate text-[7px] font-bold leading-none text-white">GR</span>
+                </span>
+                <span className="flex items-center px-2 font-plate text-[13px] font-bold uppercase tracking-wider text-foreground">{CREDIT.label}</span>
+              </span>
+            ) : part ? <span key={i}>{part}</span> : null,
+          )}
+        </a>
       </footer>
-      <PrivacyDialog open={privacyOpen} onOpenChange={setPrivacyOpen} />
+      <PrivacyDialog open={privacyOpen} onOpenChange={togglePrivacy} />
       <CookieBanner onMore={() => setPrivacyOpen(true)} />
 
       {/* undo after removing a vehicle */}
@@ -478,7 +509,7 @@ function VehicleChip({ kind, name, custom, auto, amount, on, canRemove, onSelect
   const icon = kind === "car" ? <CarFront className="size-4 shrink-0" aria-hidden="true" /> : kind === "moto" ? <MotoIcon className="size-4 shrink-0" /> : <CircleDashed className="size-4 shrink-0" aria-hidden="true" />;
   const quiet = on ? "text-white/80 hover:bg-white/15 hover:text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground";
   return (
-    <div className={cn("inline-flex h-11 max-w-full items-center rounded-full border pl-1 transition-colors", on ? "border-foreground bg-foreground text-white" : "bg-card hover:border-input")}>
+    <div className={cn("inline-flex h-11 min-w-0 max-w-full items-center rounded-full border pl-1 transition-colors", on ? "border-foreground bg-foreground text-white" : "bg-card hover:border-input")}>
       {editing ? (
         <form className="inline-flex min-w-0 items-center gap-1.5 pl-2.5" onSubmit={(ev) => { ev.preventDefault(); commit(); }}>
           {icon}
@@ -546,7 +577,8 @@ function AnswerCard({ gov, result, summary, name, stage, days, deadlineShort, pa
             <div className="grid gap-1.5">
               <span className="font-semibold text-muted-foreground">{result.exempt ? t.answer.exemptLead : paid ? t.answer.paidLead : t.answer.payLead}</span>
               <span className={cn("num text-[2.75rem] font-extrabold leading-none tracking-tight", result.exempt && "text-brand")}>{EUR.format(result.tax)}</span>
-              <span className="text-muted-foreground">{summary}</span>
+              <span className="text-muted-foreground">{summary.startsWith(`${name} · `) ? summary.slice(name.length + 3) : summary}</span>
+              {!result.exempt && <span className="text-sm text-muted-foreground">{t.answer.estimate}</span>}
               {bigMoto && <p className="mt-1 flex gap-2 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn"><TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span>{t.answer.bigMoto}</span></p>}
             </div>
 

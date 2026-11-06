@@ -4,6 +4,7 @@
 import { DEFAULT_GOV } from "../lib/gov";
 import { withFine } from "../lib/tax";
 import { GUIDE_LINKS } from "./guideLinks";
+import { CREDIT } from "./credit";
 
 const g = DEFAULT_GOV;
 const y = g.taxYear;
@@ -53,7 +54,7 @@ export const GUIDES: Guide[] = [
     slug: "prostima",
     title: `Πρόστιμα για τα τέλη κυκλοφορίας ${y}: πόσο ανεβαίνει το ποσό αν αργήσετε`,
     desc: `Τα τέλη κυκλοφορίας ${y} πληρώνονται έως ${DL}. Μετά: +25% τον Ιανουάριο, +50% τον Φεβρουάριο, +100% από 1 Μαρτίου, με ελάχιστη προσαύξηση ${g.minFine} €.`,
-    lead: `Τα τέλη του ${y} πληρώνονται έως ${DL}. Φέτος δεν προβλέπεται παράταση. Μετά την προθεσμία το ποσό ανεβαίνει κάθε μήνα.`,
+    lead: `Τα τέλη του ${y} πληρώνονται έως ${DL}. Μετά την προθεσμία το ποσό ανεβαίνει κάθε μήνα.`,
     sections: [
       { h: "Οι προσαυξήσεις", table: [[`Έως ${DL}`, "Χωρίς προσαύξηση"], [`Ιανουάριος ${y}`, "+25%"], [`Φεβρουάριος ${y}`, "+50%"], [`Από 1 Μαρτίου ${y}`, "+100% (διπλάσιο)"]], p: [`Η προσαύξηση δεν μπορεί να είναι κάτω από ${g.minFine} €.`] },
       { h: "Παράδειγμα", table: [[`Τέλη ${eur(ex)}`, `${eur(withFine(g, ex, 0.25))} τον Ιανουάριο · ${eur(withFine(g, ex, 0.5))} τον Φεβρουάριο · ${eur(withFine(g, ex, 1))} από 1 Μαρτίου`], [`Τέλη ${eur(small)}`, `${eur(withFine(g, small, 0.25))} τον Ιανουάριο · ${eur(withFine(g, small, 0.5))} τον Φεβρουάριο · ${eur(withFine(g, small, 1))} από 1 Μαρτίου`]], p: [`Στα μικρά ποσά μετράει το ελάχιστο των ${g.minFine} €: ακόμα και τον Ιανουάριο πληρώνετε ${g.minFine} € παραπάνω.`] },
@@ -87,7 +88,7 @@ export const GUIDES: Guide[] = [
   },
 ];
 
-const CSS = `:root{--fg:#0b1220;--muted:#5b6676;--brand:#0f6b3a;--brandbg:#e9f9ef;--line:#e3e7ee}*{box-sizing:border-box}body{margin:0;font-family:"Inter Variable",Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:#f6f7f9;line-height:1.6;font-size:17px}main{max-width:44rem;margin:0 auto;padding:1.25rem 1rem 3rem}a{color:var(--brand)}header{border-bottom:1px solid var(--line);background:#fff}header div{max-width:44rem;margin:0 auto;padding:.75rem 1rem;display:flex;gap:1rem;align-items:center;justify-content:space-between}header a{font-weight:700;text-decoration:none;color:var(--fg)}h1{font-size:1.75rem;line-height:1.15;margin:1rem 0 .5rem}h2{font-size:1.2rem;margin:1.75rem 0 .5rem}.lead{font-size:1.1rem;color:var(--muted)}.cta{display:block;margin:1.5rem 0;padding:1rem 1.25rem;border-radius:14px;background:#3ee38a;color:#04140b;font-weight:700;text-decoration:none;text-align:center;font-size:1.05rem}table{border-collapse:collapse;width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}td{padding:.6rem .8rem;border-top:1px solid var(--line);vertical-align:top}tr:first-child td{border-top:0}td:first-child{font-weight:600;white-space:nowrap}ol,ul{padding-left:1.25rem}li{margin:.35rem 0}.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.25rem}.small{font-size:.9rem;color:var(--muted)}nav.more a{display:inline-block;margin:.25rem .75rem .25rem 0;font-weight:600}`;
+const CSS = `:root{--fg:#0b1220;--muted:#5b6676;--brand:#0f6b3a;--brandbg:#e9f9ef;--line:#e3e7ee}*{box-sizing:border-box}body{margin:0;font-family:"Inter Variable",Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--fg);background:#f6f7f9;line-height:1.6;font-size:17px}main{max-width:44rem;margin:0 auto;padding:1.25rem 1rem 3rem}a{color:var(--brand)}header{border-bottom:1px solid var(--line);background:#fff}header div{max-width:44rem;margin:0 auto;padding:.75rem 1rem;display:flex;gap:1rem;align-items:center;justify-content:space-between}header a{font-weight:700;text-decoration:none;color:var(--fg)}h1{font-size:1.75rem;line-height:1.15;margin:1rem 0 .5rem}h2{font-size:1.2rem;margin:1.75rem 0 .5rem}.lead{font-size:1.1rem;color:var(--muted)}.cta{display:block;margin:1.5rem 0;padding:1rem 1.25rem;border-radius:14px;background:#3ee38a;color:#04140b;font-weight:700;text-decoration:none;text-align:center;font-size:1.05rem}table{border-collapse:collapse;width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}td{padding:.6rem .8rem;border-top:1px solid var(--line);vertical-align:top}tr:first-child td{border-top:0}td:first-child{font-weight:600;white-space:nowrap}ol,ul{padding-left:1.25rem}li{margin:.35rem 0}.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.25rem}.small{font-size:.9rem;color:var(--muted)}nav.more a{display:inline-block;margin:.25rem .75rem .25rem 0;font-weight:600}footer.foot div{max-width:44rem;margin:0 auto;padding:1rem 1rem 2.5rem;display:grid;justify-items:center;text-align:center}.credit{display:inline-flex;align-items:center;gap:.35rem;min-height:2.5rem;font-size:.85rem;color:var(--muted);text-decoration:none}.heart{width:1rem;height:1rem;fill:#e5484d;transition:transform .3s}.credit:hover .heart{transform:scale(1.25)}.pv{display:inline-flex;align-items:center;min-height:2.5rem;font-size:.85rem;color:var(--muted)}.pv:hover{color:var(--brand)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.plate{display:inline-flex;margin-left:.25rem;height:1.75rem;border:2px solid var(--fg);border-radius:5px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(16,24,40,.08);transition:transform .2s,box-shadow .2s}.plate .eu{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:1rem;background:#039;color:#fff;font-size:7px;font-weight:700}.plate .txt{display:flex;align-items:center;padding:0 .5rem;color:var(--fg);font-family:"Roboto Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;font-stretch:condensed;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase}.credit:hover .plate{transform:translateY(-2px);box-shadow:0 4px 10px rgba(16,24,40,.12)}@media (prefers-reduced-motion:reduce){.plate,.heart{transition:none}.credit:hover .plate,.credit:hover .heart{transform:none}}`;
 
 export function guideHtml(gd: Guide, site: string) {
   const url = `${site}/odigos/${gd.slug}/`;
@@ -128,8 +129,12 @@ ${body}
 <div class="box"><strong>Πηγές:</strong> ${gd.sources.map((s) => `<a href="${esc(s.url)}" rel="noopener">${esc(s.label)}</a>`).join(" · ")}<br><span class="small">Ενημερώθηκε 5/11/2026.</span></div>
 <h2>Άλλοι οδηγοί</h2>
 <nav class="more">${GUIDE_LINKS.filter((l) => l.slug !== gd.slug).map((l) => `<a href="/odigos/${l.slug}/">${esc(l.label)}</a>`).join("")}</nav>
-<p class="small">Ανεξάρτητο εργαλείο ενημέρωσης. Δεν είμαστε η ΑΑΔΕ και δεν ζητάμε ποτέ πληρωμή ή κωδικούς. Το ποσό που ισχύει είναι αυτό του ειδοποιητηρίου στο myCAR.</p>
 </main>
+<footer class="foot"><div>
+<p class="small" style="margin:0 0 .5rem">Ανεξάρτητος οδηγός, όχι της ΑΑΔΕ. Το επίσημο ποσό είναι στο ειδοποιητήριο του myCAR (<a href="https://www.aade.gr" rel="noopener">aade.gr</a>).</p>
+<a class="credit" href="${CREDIT.url}" rel="noopener">Φτιαγμένο με <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2-.2 3.9.8 5.4 2.6 1.5-1.8 3.4-2.8 5.4-2.6 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><span class="sr">αγάπη</span> από <span class="plate"><span class="eu" aria-hidden="true"><svg viewBox="0 0 20 20" width="10" height="10">${Array.from({ length: 12 }, (_, i) => { const r = (i / 12) * Math.PI * 2; return `<circle cx="${(10 + 7 * Math.cos(r)).toFixed(2)}" cy="${(10 + 7 * Math.sin(r)).toFixed(2)}" r="1.6" fill="#ffcc00"/>`; }).join("")}</svg>GR</span><span class="txt">${CREDIT.label}</span></span></a>
+<a class="pv" href="/#privacy">Απόρρητο</a>
+</div></footer>
 </body>
 </html>
 `;

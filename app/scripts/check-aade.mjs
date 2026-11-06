@@ -1,5 +1,5 @@
 // Checks AADE for road-tax news. GitHub runs it every Monday and Thursday (.github/workflows/publish.yml).
-// - New AADE announcements about road tax («τέλη κυκλοφορίας») are added to the site (src/content/aade-data.ts).
+// - New AADE announcements a vehicle owner may need (road tax, myCAR, off-the-road, plates, transfers…) are added to the site (src/content/aade-data.ts).
 // - It opens a GitHub issue (GitHub emails you) when there's a new announcement, when the numbers in the law
 //   article change, or when AADE can't be read for two weeks.
 // - It never changes tax amounts by itself: those need a person to check them.
@@ -19,7 +19,12 @@ const NEWS_PAGES = ["https://www.aade.gr/deltia-typoy-anakoinoseis", "https://ww
 const LAW_URL = "https://www.taxheaven.gr/law/5177/2025/arthro/55";
 // Greek accents move (τέλη, τελών, τέλους), so accents are removed before matching.
 const plain = (s) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-const RELEVANT = [/τελ(η|ων|ους|ος)\s+κυκλοφορ/, /\bmycar\b/, /ακινησι/];
+// What a vehicle owner may need to act on: road tax, myCAR, off-the-road, plates, transfer, registration tax, EVs, motorbikes.
+const RELEVANT = [/τελ(η|ων|ους|ος)\s+κυκλοφορ/, /\bmycar\b/, /\bmyauto\b/, /ακινησι/, /πινακιδ/, /μεταβιβασ\w*\s+(του\s+|των\s+)?οχημ/,
+  /τελ(ος|ους)\s+ταξινομ/, /ηλεκτρικ\w*\s+(αυτοκινητ|οχημ)/, /μοτοσικλετ/, /(ιδιοκτητ|κατοχ)\w*\s+(ι\.?χ\.?|οχημ|αυτοκινητ)/];
+// AADE also announces customs seizures ("κατασχέθηκαν οχήματα…"): not news for owners.
+const IGNORE = [/λαθρ/, /κατασχ/, /δεσμευ/, /συλληψ/, /εντοπισ/, /διακινησ/, /ναρκωτ/];
+const relevant = (title) => { const t = plain(title); return RELEVANT.some((k) => k.test(t)) && !IGNORE.some((k) => k.test(t)); };
 const FIXTURES = process.env.CHECK_FIXTURES; // tests only: a folder of saved pages instead of the internet
 
 async function get(url) {
@@ -71,7 +76,7 @@ try {
     if (state.seen.includes(it.url)) continue;
     state.seen.push(it.url);
     if (firstRun) continue; // the first run only learns what already exists
-    if (RELEVANT.some((k) => k.test(plain(it.title)))) added.push({ date: it.date, title: it.title.slice(0, 200), url: it.url, source: "aade.gr" });
+    if (relevant(it.title)) added.push({ date: it.date, title: it.title.slice(0, 200), url: it.url, source: "aade.gr" });
   }
   state.seen = state.seen.slice(-400);
 } catch (e) { problems.push(`Couldn't read AADE's announcements: ${e.message}`); }
@@ -92,7 +97,7 @@ writeFileSync(STATE, JSON.stringify(state, null, 2) + "\n");
 
 // Tell the owner. On GitHub this opens an issue, and GitHub emails it to you.
 const lines = [
-  ...added.map((n) => `New AADE announcement about road tax (now shown on your site):\n${n.title}\n${n.url}\nIf it changes the deadline or the amounts, the calculator itself still needs an update.`),
+  ...added.map((n) => `New AADE announcement for vehicle owners (now shown on your site):\n${n.title}\n${n.url}\nIf it changes the deadline or the amounts, the calculator itself still needs an update.`),
   ...alerts,
 ];
 const summary = [`AADE check ${today}: ${added.length} new announcement(s), ${alerts.length} alert(s).`, ...problems].join("\n");

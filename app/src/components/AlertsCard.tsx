@@ -1,14 +1,15 @@
 import * as React from "react";
-import { BellRing, CalendarClock, Check, Loader2, Mail, Newspaper, ParkingSquare, Smartphone, ThumbsUp, TrendingUp } from "lucide-react";
+import { BellRing, CalendarClock, Check, Construction, Loader2, Mail, Newspaper, ParkingSquare, Smartphone, ThumbsUp, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { EUR, InfoTip, SectionCard, fmtDate } from "@/components/bits";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { track } from "@/lib/track";
+import { answer, track } from "@/lib/track";
 import { DEFAULT_PREFS, emailSupported, enablePush, loadSub, pushSupport, saveSub, subscribeEmail, unsubscribe, updateSubscription, type AlertPrefs, type Subscription } from "@/lib/alerts";
 import type { Gov } from "@/lib/tax";
 
@@ -136,9 +137,16 @@ export function useAlertVote() {
   const pick = React.useCallback((v: Vote, where: string) => {
     try { localStorage.setItem(VOTE_KEY, v); } catch { /* ignore */ }
     voteListeners.forEach((f) => f());
-    track(v === "push" || v === "email" ? "alerts_channel" : "alerts_interest", { answer: v, where });
+    answer(v === "push" || v === "email" ? "alerts_channel" : "alerts_interest", { answer: v, where });
   }, []);
-  return { vote, pick };
+  /* «Αλλαγή απάντησης»: the card opens again. Counted as alerts_change-<old answer>, so a changed vote can be subtracted. */
+  const reset = React.useCallback(() => {
+    const old = readVote();
+    try { localStorage.removeItem(VOTE_KEY); } catch { /* ignore */ }
+    voteListeners.forEach((f) => f());
+    if (old) answer("alerts_change", { from: old });
+  }, []);
+  return { vote, pick, reset };
 }
 
 /* Minimal vote inside the answer: "Smart alerts are coming. Want them?" Yes / No. */
@@ -162,21 +170,49 @@ export function AlertVote() {
   );
 }
 
+// A thin yellow-and-black "works in progress" stripe along the top edge.
+const STRIPE = "relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1.5 before:bg-[repeating-linear-gradient(-45deg,#f5c518_0_10px,#1f2937_10px_20px)] before:content-['']";
+
+/* The idea, not the feature: shows what alerts would do and asks "build it?". It can't be closed before answering,
+   because the answers decide whether it gets built. After an answer it shrinks to one line. */
 function ComingSoon({ rows }: { rows: { key: string; icon: React.ReactNode; title: string; sub: string }[] }) {
   const t = useT();
-  const { vote, pick: pickVote } = useAlertVote();
+  const { vote, pick: pickVote, reset } = useAlertVote();
   const pick = (v: Vote) => pickVote(v, "card");
+  // Count how many people actually see the card, so the votes can be compared with it (GoatCounter: alerts_card_seen).
+  const seenRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const el = seenRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => { if (e?.isIntersecting) { track("alerts_card_seen"); io.disconnect(); } }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const badge = (cls: string) => <Badge variant="warn" className={cn("px-3 py-1 text-sm", cls)}><Construction className="size-4" aria-hidden="true" />{t.alerts.soon}</Badge>;
+
+  if (vote === "no" || vote === "push" || vote === "email") {
+    return (
+      <Card id="alerts" className={cn("scroll-mt-4", STRIPE)}>
+        <CardContent className="flex flex-wrap items-center gap-x-3 gap-y-2 py-4 sm:py-4" aria-live="polite">
+          <Check className="size-5 shrink-0 text-brand" aria-hidden="true" />
+          <span className="grid gap-0.5"><span className="font-semibold">{t.alerts.title}</span><span className="text-sm text-muted-foreground">{vote === "no" ? t.alerts.thanksNo : t.alerts.thanksYes}{" "}
+            <button type="button" onClick={reset} className="inline min-h-6 font-semibold text-brand underline underline-offset-2">{t.alerts.change}</button></span></span>
+          {badge("sm:ml-auto")}
+        </CardContent>
+      </Card>
+    );
+  }
   return (
-    <SectionCard id="alerts" title={t.alerts.title} eyebrow={t.alerts.eyebrow}>
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="warn">{t.alerts.soon}</Badge>
-        <span className="text-sm text-muted-foreground">{t.alerts.soonText}</span>
-      </div>
+    <div ref={seenRef}>
+    <SectionCard id="alerts" title={t.alerts.title} eyebrow={t.alerts.eyebrow} className={STRIPE} action={badge("hidden shrink-0 sm:inline-flex")}>
+      {/* on phones the badge sits here, so the title keeps its width */}
+      {badge("-mt-1 justify-self-start sm:hidden")}
+      <p className="m-0 text-sm text-muted-foreground">{t.alerts.soonText}</p>
       <ul className="m-0 grid list-none gap-2 p-0">
         {rows.map((r) => (
-          <li key={r.key} className="flex items-center gap-3 rounded-xl border px-4 py-3">
-            <span className="text-brand" aria-hidden="true">{r.icon}</span>
-            <span className="grid min-w-0 gap-0.5 text-base font-semibold">{r.title}<span className="text-sm font-normal text-muted-foreground">{r.sub}</span></span>
+          <li key={r.key} className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-2.5">
+            <span className="text-muted-foreground" aria-hidden="true">{r.icon}</span>
+            <span className="min-w-0 text-base font-semibold">{r.title}</span>
           </li>
         ))}
       </ul>
@@ -209,5 +245,6 @@ function ComingSoon({ rows }: { rows: { key: string; icon: React.ReactNode; titl
         <p className="m-0 text-xs text-muted-foreground">{t.alerts.countOnly}</p>
       </div>
     </SectionCard>
+    </div>
   );
 }

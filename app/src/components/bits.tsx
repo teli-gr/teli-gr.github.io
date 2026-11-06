@@ -181,13 +181,16 @@ export function BandTable({ head, rows, active }: { head: [string, string]; rows
   );
 }
 
-export function SectionCard({ title, eyebrow, children, className, id }: { title: string; eyebrow?: string; children: React.ReactNode; className?: string; id?: string }) {
+export function SectionCard({ title, eyebrow, children, className, id, action }: { title: string; eyebrow?: string; children: React.ReactNode; className?: string; id?: string; action?: React.ReactNode }) {
   return (
     <Card id={id} className={cn("scroll-mt-4", className)}>
       <CardContent className="grid gap-4">
-        <div className="grid gap-0.5">
-          {eyebrow && <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{eyebrow}</span>}
-          <h2 className="text-xl font-bold tracking-tight text-balance">{title}</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div className="grid gap-0.5">
+            {eyebrow && <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{eyebrow}</span>}
+            <h2 className="text-xl font-bold tracking-tight text-balance">{title}</h2>
+          </div>
+          {action}
         </div>
         {children}
       </CardContent>

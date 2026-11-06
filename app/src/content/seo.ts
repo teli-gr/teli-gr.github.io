@@ -9,6 +9,7 @@ import { ru } from "../i18n/ru";
 import { sq } from "../i18n/sq";
 import { FAQ_URLS } from "./faq";
 import { GUIDE_LINKS } from "./guideLinks";
+import { CREDIT } from "./credit";
 
 export type SeoLang = "el" | "en" | "sq" | "zh" | "ru";
 const D = { el, en, sq, zh, ru };
@@ -31,7 +32,7 @@ export function seoHead(siteUrl: string, lang: SeoLang = "el") {
   const url = siteUrl ? `${siteUrl}${page.path}` : "";
   const ld = [
     { "@context": "https://schema.org", "@type": "WebApplication", name: t.meta.appName(g.taxYear), applicationCategory: "FinanceApplication", operatingSystem: "Any", inLanguage: lang, offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" }, url: url || undefined },
-    { "@context": "https://schema.org", "@type": "FAQPage", inLanguage: lang, mainEntity: t.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
+    { "@context": "https://schema.org", "@type": "FAQPage", inLanguage: lang, mainEntity: t.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a.replace(/\n/g, " ") } })) },
   ];
   return [
     `<title>${esc(title)}</title>`,
@@ -73,9 +74,10 @@ export function seoBody(lang: SeoLang = "el") {
 <p>${esc(t.seo.example)}</p>
 <h2>${esc(t.seo.cc)}</h2><table>${ccRows}</table>
 <h2>${esc(t.help.title)}</h2>
-${t.faq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a)} <a href="${FAQ_URLS[f.src]}">${esc(t.faqSources[f.src])}</a></p>`).join("\n")}
+${t.faq.map((f) => `<h3>${esc(f.q)}</h3><p>${esc(f.a).replace(/\n/g, "<br>")} <a href="${FAQ_URLS[f.src]}">${esc(t.faqSources[f.src])}</a></p>`).join("\n")}
 ${lang === "el" ? `<p>Οδηγοί: ${GUIDE_LINKS.map((gl) => `<a href="/odigos/${gl.slug}/">${gl.label}</a>`).join(" · ")}</p>` : ""}
 <p>${LANG_LIST.map((l) => `<a href="${PAGES[l].path}" hreflang="${l}">${{ el: "Ελληνικά", en: "English", sq: "Shqip", zh: "中文", ru: "Русский" }[l]}</a>`).join(" · ")}</p>
 <p><small>${esc(t.seo.footer)}</small></p>
+<p><small>${esc(t.footer.madeBy).replace("{heart}", "♥").replace("{site}", `<a href="${CREDIT.url}">${CREDIT.label}</a>`)}</small></p>
 </main>`;
 }
