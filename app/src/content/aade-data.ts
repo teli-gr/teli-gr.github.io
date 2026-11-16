@@ -1,7 +1,7 @@
 /* News shown on the site, plus the date of the last official check.
    On GitHub, scripts/check-aade.mjs updates this file every Monday and Thursday. You can also edit it by hand. */
 export const AADE_DATA: { checkedAt: string; notices: { date: string; title: string; url?: string; source?: string }[] } = {
-  "checkedAt": "2026-11-12T15:26:06Z",
+  "checkedAt": "2026-11-16T16:02:53Z",
   "notices": [
     {
       "date": "2026-11-02",
